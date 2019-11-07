@@ -8,6 +8,7 @@
 #import <React/RCTLog.h>
 #import <React/RCTUtils.h>
 #import <React/UIView+React.h>
+#import "ZXingBarcodeDetectorManagerKit.h"
 
 @implementation RNCameraManager
 
@@ -73,6 +74,9 @@ RCT_EXPORT_VIEW_PROPERTY(onSubjectAreaChanged, RCTDirectEventBlock);
              @"VideoStabilization": [[self class] validVideoStabilizationModes],
              @"GoogleVisionBarcodeDetection": @{
                  @"BarcodeType": [[self class] barcodeDetectorConstants],
+             },
+             @"ZXingBarcodeDetection": @{
+                 @"BarcodeType": [[self class] zxingBarCodeDetectorConstants],
              }
              };
 }
@@ -161,6 +165,10 @@ RCT_EXPORT_VIEW_PROPERTY(onSubjectAreaChanged, RCTDirectEventBlock);
 #else
     return [NSDictionary new];
 #endif
+}
+
++ (NSDictionary *)zxingBarCodeDetectorConstants {
+    return [ZXingBarcodeDetectorManagerKit constants];
 }
 
 RCT_CUSTOM_VIEW_PROPERTY(type, NSInteger, RNCamera)
@@ -278,9 +286,13 @@ RCT_CUSTOM_VIEW_PROPERTY(barCodeTypes, NSArray, RNCamera)
     [view setBarCodeTypes:[RCTConvert NSArray:json]];
 }
 
+RCT_CUSTOM_VIEW_PROPERTY(zxingBarCodeTypes, NSArray, RNCamera) {
+    [view updateZXingBarcodeTypes:json];
+}
+
 RCT_CUSTOM_VIEW_PROPERTY(googleVisionBarcodeType, NSString, RNCamera)
 {
-    [view updateGoogleVisionBarcodeType:json];
+//    [view updateGoogleVisionBarcodeType:json];
 }
 
 RCT_CUSTOM_VIEW_PROPERTY(googleVisionBarcodeDetectorEnabled, BOOL, RNCamera)
@@ -300,6 +312,12 @@ RCT_CUSTOM_VIEW_PROPERTY(rectOfInterest, CGRect, RNCamera)
 {
     [view setRectOfInterest: [RCTConvert CGRect:json]];
     [view updateRectOfInterest];
+}
+
+RCT_CUSTOM_VIEW_PROPERTY(scanRectSize, CGSize, RNCamera)
+{
+    [view setScanRectSize:[RCTConvert CGSize:json]];
+    [view updateScanRectSize];
 }
 
 RCT_CUSTOM_VIEW_PROPERTY(defaultVideoQuality, NSInteger, RNCamera)

@@ -22,6 +22,10 @@ Pod::Spec.new do |s|
   s.subspec "RN" do |ss|
     ss.source_files = "ios/RN/**/*.{h,m}"
   end
+  
+  s.subspec "ZXing" do |ss|
+    ss.source_files = "ios/zxingify-objc/ZXingObjC/**/*.{h,m}"
+  end
 
   s.subspec "TextDetector" do |ss|
     ss.dependency 'react-native-camera/RN'
@@ -42,6 +46,7 @@ Pod::Spec.new do |s|
     ss.dependency 'react-native-camera/RCT'
     ss.dependency 'Firebase/MLVision'
     ss.dependency 'Firebase/MLVisionBarcodeModel'
+    ss.dependency 'react-native-camera/ZXing'
   end
 
   s.default_subspecs = "RN", "RCT"

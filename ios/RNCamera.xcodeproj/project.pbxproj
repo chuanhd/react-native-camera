@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 46;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -18,17 +18,65 @@
 		71C7FFD02013C7E5006EB75A /* RNCameraUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = 71C7FFCF2013C7E5006EB75A /* RNCameraUtils.m */; };
 		71C7FFD32013C817006EB75A /* RNImageUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = 71C7FFD22013C817006EB75A /* RNImageUtils.m */; };
 		71C7FFD62013C824006EB75A /* RNFileSystem.m in Sources */ = {isa = PBXBuildFile; fileRef = 71C7FFD52013C824006EB75A /* RNFileSystem.m */; };
+		85E0A3E22356FBA3004E905D /* ZXingObjC.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 85E0A3E02356FB60004E905D /* ZXingObjC.framework */; platformFilter = ios; };
+		85E0A3E72356FCA5004E905D /* ZXingObjC.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 85E0A3E02356FB60004E905D /* ZXingObjC.framework */; platformFilter = ios; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		9FE592B31CA3CBF500788287 /* RCTSensorOrientationChecker.m in Sources */ = {isa = PBXBuildFile; fileRef = 9FE592B21CA3CBF500788287 /* RCTSensorOrientationChecker.m */; };
 		F8393BEC21469C0000AB1995 /* RNSensorOrientationChecker.m in Sources */ = {isa = PBXBuildFile; fileRef = F8393BEB21469C0000AB1995 /* RNSensorOrientationChecker.m */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		85E0A3D52356FB60004E905D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 85E0A3CC2356FB60004E905D /* ZXingObjC.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 25403CB3166A96FA00E13304;
+			remoteInfo = "ZXingObjC-iOS";
+		};
+		85E0A3D72356FB60004E905D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 85E0A3CC2356FB60004E905D /* ZXingObjC.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 25403CC4166A96FA00E13304;
+			remoteInfo = "Unit Tests iOS";
+		};
+		85E0A3D92356FB60004E905D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 85E0A3CC2356FB60004E905D /* ZXingObjC.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 25404166166AADAC00E13304;
+			remoteInfo = "ZXingObjC-osx";
+		};
+		85E0A3DB2356FB60004E905D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 85E0A3CC2356FB60004E905D /* ZXingObjC.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 25404178166AADAC00E13304;
+			remoteInfo = "Unit Tests OS X";
+		};
+		85E0A3DD2356FB60004E905D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 85E0A3CC2356FB60004E905D /* ZXingObjC.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 2540439E166ABA0A00E13304;
+			remoteInfo = "OS X Framework";
+		};
+		85E0A3DF2356FB60004E905D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 85E0A3CC2356FB60004E905D /* ZXingObjC.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = DB72547F1A523C9200EFF81B;
+			remoteInfo = "iOS Framework";
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXCopyFilesBuildPhase section */
-		4107012D1ACB723B00C6AA39 /* CopyFiles */ = {
+		85E0A3E42356FC27004E905D /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = "include/$(PRODUCT_NAME)";
-			dstSubfolderSpec = 16;
+			dstPath = "";
+			dstSubfolderSpec = 10;
 			files = (
+				85E0A3E72356FCA5004E905D /* ZXingObjC.framework in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -57,6 +105,7 @@
 		71C7FFD22013C817006EB75A /* RNImageUtils.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RNImageUtils.m; sourceTree = "<group>"; };
 		71C7FFD42013C824006EB75A /* RNFileSystem.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RNFileSystem.h; sourceTree = "<group>"; };
 		71C7FFD52013C824006EB75A /* RNFileSystem.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RNFileSystem.m; sourceTree = "<group>"; };
+		85E0A3CC2356FB60004E905D /* ZXingObjC.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ZXingObjC.xcodeproj; path = "zxingify-objc/ZXingObjC.xcodeproj"; sourceTree = "<group>"; };
 		9FE592B11CA3CBF500788287 /* RCTSensorOrientationChecker.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RCTSensorOrientationChecker.h; sourceTree = "<group>"; };
 		9FE592B21CA3CBF500788287 /* RCTSensorOrientationChecker.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RCTSensorOrientationChecker.m; sourceTree = "<group>"; };
 		F8393BEA21469C0000AB1995 /* RNSensorOrientationChecker.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RNSensorOrientationChecker.h; sourceTree = "<group>"; };
@@ -68,6 +117,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				85E0A3E22356FBA3004E905D /* ZXingObjC.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -77,9 +127,11 @@
 		410701241ACB719800C6AA39 = {
 			isa = PBXGroup;
 			children = (
+				85E0A3CC2356FB60004E905D /* ZXingObjC.xcodeproj */,
 				714166162013E1B600EE9FCC /* RN */,
 				714166152013E19D00EE9FCC /* RCT */,
 				410701301ACB723B00C6AA39 /* Products */,
+				85E0A3E12356FBA2004E905D /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -130,6 +182,26 @@
 			path = RN;
 			sourceTree = "<group>";
 		};
+		85E0A3CD2356FB60004E905D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				85E0A3D62356FB60004E905D /* libZXingObjC-iOS.a */,
+				85E0A3D82356FB60004E905D /* Unit Tests iOS.xctest */,
+				85E0A3DA2356FB60004E905D /* libZXingObjC-osx.a */,
+				85E0A3DC2356FB60004E905D /* Unit Tests OS X.xctest */,
+				85E0A3DE2356FB60004E905D /* ZXingObjC.framework */,
+				85E0A3E02356FB60004E905D /* ZXingObjC.framework */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		85E0A3E12356FBA2004E905D /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -139,7 +211,7 @@
 			buildPhases = (
 				4107012B1ACB723B00C6AA39 /* Sources */,
 				4107012C1ACB723B00C6AA39 /* Frameworks */,
-				4107012D1ACB723B00C6AA39 /* CopyFiles */,
+				85E0A3E42356FC27004E905D /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -174,12 +246,63 @@
 			mainGroup = 410701241ACB719800C6AA39;
 			productRefGroup = 410701301ACB723B00C6AA39 /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = 85E0A3CD2356FB60004E905D /* Products */;
+					ProjectRef = 85E0A3CC2356FB60004E905D /* ZXingObjC.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				4107012E1ACB723B00C6AA39 /* RNCamera */,
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXReferenceProxy section */
+		85E0A3D62356FB60004E905D /* libZXingObjC-iOS.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = "libZXingObjC-iOS.a";
+			remoteRef = 85E0A3D52356FB60004E905D /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		85E0A3D82356FB60004E905D /* Unit Tests iOS.xctest */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.cfbundle;
+			path = "Unit Tests iOS.xctest";
+			remoteRef = 85E0A3D72356FB60004E905D /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		85E0A3DA2356FB60004E905D /* libZXingObjC-osx.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = "libZXingObjC-osx.a";
+			remoteRef = 85E0A3D92356FB60004E905D /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		85E0A3DC2356FB60004E905D /* Unit Tests OS X.xctest */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.cfbundle;
+			path = "Unit Tests OS X.xctest";
+			remoteRef = 85E0A3DB2356FB60004E905D /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		85E0A3DE2356FB60004E905D /* ZXingObjC.framework */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.framework;
+			path = ZXingObjC.framework;
+			remoteRef = 85E0A3DD2356FB60004E905D /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		85E0A3E02356FB60004E905D /* ZXingObjC.framework */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.framework;
+			path = ZXingObjC.framework;
+			remoteRef = 85E0A3DF2356FB60004E905D /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+/* End PBXReferenceProxy section */
 
 /* Begin PBXSourcesBuildPhase section */
 		4107012B1ACB723B00C6AA39 /* Sources */ = {
@@ -241,6 +364,7 @@
 					"$(SRCROOT)/../../../ios/**",
 					"${BUILT_PRODUCTS_DIR}/**",
 					"$(SRCROOT)/../../ios/**",
+					"$(PROJECT_DIR)",
 				);
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -296,6 +420,7 @@
 					"$(SRCROOT)/../../../ios/**",
 					"${BUILT_PRODUCTS_DIR}/**",
 					"$(SRCROOT)/../../ios/**",
+					"$(PROJECT_DIR)",
 				);
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;

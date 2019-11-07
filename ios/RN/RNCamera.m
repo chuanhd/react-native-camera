@@ -6,7 +6,8 @@
 #import <React/RCTLog.h>
 #import <React/RCTUtils.h>
 #import <React/UIView+React.h>
-#import  "RNSensorOrientationChecker.h"
+#import "RNSensorOrientationChecker.h"
+#import "ZXingObjC.h"
 @interface RNCamera ()
 
 @property (nonatomic, weak) RCTBridge *bridge;
@@ -37,6 +38,14 @@
 @property (nonatomic, assign) BOOL isFocusedOnPoint;
 @property (nonatomic, assign) BOOL isExposedOnPoint;
 
+@property (nonatomic, strong) ZXImageDecoder * imageDecoder;
+@property (nonatomic, assign) CGFloat captureFramesPerSec;
+@property (nonatomic, assign) CGRect scanRect; // in image geometry
+@property (nonatomic, assign) CGRect scanRectInView; // in view geometry
+@property (nonatomic, assign) CGFloat scanRectRotation;
+@property (nonatomic, assign) BOOL running;
+@property (nonatomic, assign) BOOL isFirstApplyOrientation;
+
 @end
 
 @implementation RNCamera
@@ -66,14 +75,29 @@ static NSDictionary *defaultFaceDetectorOptions = nil;
         self.previewLayer.needsDisplayOnBoundsChange = YES;
 #endif
         self.paused = NO;
-        self.rectOfInterest = CGRectMake(0, 0, 1.0, 1.0);
+        self.rectOfInterest = CGRectMake(0.1, 0.25, 0.6, 0.5);
         self.autoFocus = -1;
         self.exposure = -1;
         self.presetCamera = AVCaptureDevicePositionUnspecified;
         self.cameraId = nil;
         self.isFocusedOnPoint = NO;
         self.isExposedOnPoint = NO;
-
+        
+        self.imageDecoder = [[ZXImageDecoder alloc] init];
+        ZXDecodeHints * hints = [[ZXDecodeHints alloc] init];
+        hints.tryHarder = YES;
+        [hints addPossibleFormat:kBarcodeFormatRSS14Limited];
+        [hints addPossibleFormat:kBarcodeFormatEan8];
+        [hints addPossibleFormat:kBarcodeFormatEan13];
+        [self.imageDecoder setHints:hints];
+        self.imageDecoder.delegate = self;
+        self.scanRectSize = CGSizeMake(200, 80);
+        self.scanRect = CGRectMake(519, 101, 877, 877);
+        self.scanRectInView = CGRectZero;
+        self.captureFramesPerSec = 3.0f;
+        self.isFirstApplyOrientation = NO;
+        self.captureResolution = CGSizeZero;
+        
         [self changePreviewOrientation:[UIApplication sharedApplication].statusBarOrientation];
 
 
@@ -138,6 +162,18 @@ static NSDictionary *defaultFaceDetectorOptions = nil;
     self.previewLayer.frame = self.bounds;
     [self setBackgroundColor:[UIColor blackColor]];
     [self.layer insertSublayer:self.previewLayer atIndex:0];
+    
+    if (!_isFirstApplyOrientation) {
+        _isFirstApplyOrientation = YES;
+        [self applyZXingScanOrientation];
+        // Draw scan rect layer for debug
+        if (self.scanRectLayer == nil) {
+            self.scanRectLayer = [CALayer layer];
+        }
+        
+        self.scanRectLayer.frame = CGRectMake(0, 0, self.scanRectSize.width, self.scanRectSize.height);
+        [self.previewLayer addSublayer:self.scanRectLayer];
+    }
 }
 
 - (void)insertReactSubview:(UIView *)view atIndex:(NSInteger)atIndex
@@ -981,6 +1017,7 @@ static NSDictionary *defaultFaceDetectorOptions = nil;
 
         [self.session startRunning];
         [self onReady:nil];
+        self.running = YES;
     });
 }
 
@@ -1015,6 +1052,7 @@ static NSDictionary *defaultFaceDetectorOptions = nil;
         self.videoCaptureDeviceInput = nil;
         self.audioCaptureDeviceInput = nil;
         self.movieFileOutput = nil;
+        self.running = NO;
     });
 }
 
@@ -1201,6 +1239,32 @@ static NSDictionary *defaultFaceDetectorOptions = nil;
 {
     UIInterfaceOrientation orientation = [[UIApplication sharedApplication] statusBarOrientation];
     [self changePreviewOrientation:orientation];
+    [self applyZXingScanOrientation];
+}
+
+- (void) applyZXingScanOrientation {
+    UIInterfaceOrientation orientation = [[UIApplication sharedApplication] statusBarOrientation];
+    
+    CGFloat scanRectRotation;
+    switch (orientation) {
+        case UIInterfaceOrientationPortrait:
+            scanRectRotation = 90;
+            break;
+        case UIInterfaceOrientationLandscapeLeft:
+            scanRectRotation = 180;
+            break;
+        case UIInterfaceOrientationLandscapeRight:
+            scanRectRotation = 0;
+            break;
+        case UIInterfaceOrientationPortraitUpsideDown:
+            scanRectRotation = 270;
+            break;
+        default:
+            scanRectRotation = 90;
+            break;
+    }
+    self.scanRectRotation = scanRectRotation;
+    [self updateScanRectSize];
 }
 
 - (void)changePreviewOrientation:(UIInterfaceOrientation)orientation
@@ -1229,6 +1293,65 @@ static NSDictionary *defaultFaceDetectorOptions = nil;
         return;
     }
     [_metadataOutput setRectOfInterest: _rectOfInterest];
+}
+
+- (void) updateScanRectSize {
+    if (self.previewLayer.frame.size.width == 0 || self.previewLayer.frame.size.height == 0) {
+        return;
+    }
+    
+    CGRect previewFrame = self.previewLayer.frame;
+    self.scanRectInView = CGRectMake((previewFrame.size.width - self.scanRectSize.width) * 0.5,
+    (previewFrame.size.height -  self.scanRectSize.height) * 0.5,
+     self.scanRectSize.width,
+     self.scanRectSize.height);
+    
+    self.scanRectLayer.frame = CGRectMake(0, 0, self.scanRectSize.width, self.scanRectSize.height);
+    
+    [self updateRectOfInterestForZXing:[[UIApplication sharedApplication] statusBarOrientation]];
+}
+
+- (void) updateRectOfInterestForZXing:(UIInterfaceOrientation)orientation {
+    
+    if (self.previewLayer.frame.size.width == 0 || self.previewLayer.frame.size.height == 0) {
+        return;
+    }
+        
+    if (CGSizeEqualToSize(self.captureResolution, CGSizeZero)) {
+        return;
+    }
+    
+    self.scanRect = [self calculateImageScanRectBaseOnResolution:self.captureResolution withPreviewRectSize:self.previewLayer.frame.size withViewScanRect:self.scanRectInView withOrientation:orientation];
+}
+
+- (CGRect) calculateImageScanRectBaseOnResolution:(CGSize)resolution withPreviewRectSize:(CGSize)previewSize withViewScanRect:(CGRect)viewScanRect withOrientation:(UIInterfaceOrientation)orientation {
+    CGRect transformedVideoRect = CGRectZero;
+    CGAffineTransform _captureSizeTransform;
+    CGFloat videoSizeX = resolution.width;
+    CGFloat videoSizeY = resolution.height;
+    CGFloat scaleVideoX, scaleVideoY;
+    if(UIInterfaceOrientationIsPortrait(orientation)) {
+        scaleVideoX = previewSize.width / videoSizeX;
+        scaleVideoY = previewSize.height / videoSizeY;
+        
+        // Convert CGPoint under portrait mode to map with orientation of image
+        // because the image will be cropped before rotate
+        // reference: https://github.com/TheLevelUp/ZXingObjC/issues/222
+        CGFloat realX = transformedVideoRect.origin.y;
+        CGFloat realY = previewSize.width - transformedVideoRect.size.width - transformedVideoRect.origin.x;
+        CGFloat realWidth = transformedVideoRect.size.height;
+        CGFloat realHeight = transformedVideoRect.size.width;
+        transformedVideoRect = CGRectMake(realX, realY, realWidth, realHeight);
+        
+    } else {
+        scaleVideoX = previewSize.width / videoSizeY;
+        scaleVideoY = previewSize.height / videoSizeX;
+    }
+    
+    _captureSizeTransform = CGAffineTransformMakeScale(1.0/scaleVideoX, 1.0/scaleVideoY);
+    CGRect scanRect = CGRectApplyAffineTransform(transformedVideoRect, _captureSizeTransform);
+    
+    return scanRect;
 }
 
 - (void)_setupOrDisableMetadataOutput
@@ -1553,8 +1676,9 @@ static NSDictionary *defaultFaceDetectorOptions = nil;
 
 -(id)createBarcodeDetectorMlKit
 {
-    Class barcodeDetectorManagerClassMlkit = NSClassFromString(@"BarcodeDetectorManagerMlkit");
-    return [[barcodeDetectorManagerClassMlkit alloc] init];
+//    Class barcodeDetectorManagerClassMlkit = NSClassFromString(@"BarcodeDetectorManagerMlkit");
+    Class zxingBarcodeDetectorManagerKit = NSClassFromString(@"ZxingBarcodeDetectorManagerKit");
+    return [[zxingBarcodeDetectorManagerKit alloc] init];
 }
 
 - (void)setupOrDisableBarcodeDetector
@@ -1598,7 +1722,11 @@ static NSDictionary *defaultFaceDetectorOptions = nil;
 
 - (void)updateGoogleVisionBarcodeType:(id)requestedTypes
 {
-    [self.barcodeDetector setType:requestedTypes queue:self.sessionQueue];
+//    [self.barcodeDetector setType:requestedTypes queue:self.sessionQueue];
+}
+
+- (void)updateZXingBarcodeTypes:(id)types {
+    [self.barcodeDetector setPossibleBarcodeFormats:types];
 }
 
 - (void)onBarcodesDetected:(NSDictionary *)event
@@ -1653,65 +1781,147 @@ static NSDictionary *defaultFaceDetectorOptions = nil;
     didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
            fromConnection:(AVCaptureConnection *)connection
 {
-    if (![self.textDetector isRealDetector] && ![self.faceDetector isRealDetector] && ![self.barcodeDetector isRealDetector]) {
+ 
+    if (!self.running) return;
+    
+    if (![self.barcodeDetector isRealDetector]) {
         NSLog(@"failing real check");
         return;
     }
-
-    // Do not submit image for text/face recognition too often:
-    // 1. we only dispatch events every 500ms anyway
-    // 2. wait until previous recognition is finished
-    // 3. let user disable text recognition, e.g. onTextRecognized={someCondition ? null : this.textRecognized}
-    NSDate *methodFinish = [NSDate date];
-    NSTimeInterval timePassedSinceSubmittingForText = [methodFinish timeIntervalSinceDate:self.startText];
-    NSTimeInterval timePassedSinceSubmittingForFace = [methodFinish timeIntervalSinceDate:self.startFace];
-    NSTimeInterval timePassedSinceSubmittingForBarcode = [methodFinish timeIntervalSinceDate:self.startBarcode];
-    BOOL canSubmitForTextDetection = timePassedSinceSubmittingForText > 0.5 && _finishedReadingText && self.canReadText && [self.textDetector isRealDetector];
-    BOOL canSubmitForFaceDetection = timePassedSinceSubmittingForFace > 0.5 && _finishedDetectingFace && self.canDetectFaces && [self.faceDetector isRealDetector];
-    BOOL canSubmitForBarcodeDetection = timePassedSinceSubmittingForBarcode > 0.5 && _finishedDetectingBarcodes && self.canDetectBarcodes && [self.barcodeDetector isRealDetector];
-    if (canSubmitForFaceDetection || canSubmitForTextDetection || canSubmitForBarcodeDetection) {
-        CGSize previewSize = CGSizeMake(_previewLayer.frame.size.width, _previewLayer.frame.size.height);
-        NSInteger position = self.videoCaptureDeviceInput.device.position;
-        UIImage *image = [RNCameraUtils convertBufferToUIImage:sampleBuffer previewSize:previewSize position:position];
-        // take care of the fact that preview dimensions differ from the ones of the image that we submit for text detection
-        float scaleX = _previewLayer.frame.size.width / image.size.width;
-        float scaleY = _previewLayer.frame.size.height / image.size.height;
-
-        // find text features
-        if (canSubmitForTextDetection) {
-            _finishedReadingText = false;
-            self.startText = [NSDate date];
-            [self.textDetector findTextBlocksInFrame:image scaleX:scaleX scaleY:scaleY completed:^(NSArray * textBlocks) {
-                NSDictionary *eventText = @{@"type" : @"TextBlock", @"textBlocks" : textBlocks};
-                [self onText:eventText];
-                self.finishedReadingText = true;
-            }];
-        }
-        // find face features
-        if (canSubmitForFaceDetection) {
-            _finishedDetectingFace = false;
-            self.startFace = [NSDate date];
-            [self.faceDetector findFacesInFrame:image scaleX:scaleX scaleY:scaleY completed:^(NSArray * faces) {
-                NSDictionary *eventFace = @{@"type" : @"face", @"faces" : faces};
-                [self onFacesDetected:eventFace];
-                self.finishedDetectingFace = true;
-            }];
-        }
-        // find barcodes
-        if (canSubmitForBarcodeDetection) {
-            _finishedDetectingBarcodes = false;
-            self.startBarcode = [NSDate date];
-            [self.barcodeDetector findBarcodesInFrame:image scaleX:scaleX scaleY:scaleY completed:^(NSArray * barcodes) {
-                NSDictionary *eventBarcode = @{@"type" : @"barcode", @"barcodes" : barcodes};
-                [self onBarcodesDetected:eventBarcode];
-                self.finishedDetectingBarcodes = true;
-            }];
+    
+    if (CGSizeEqualToSize(self.captureResolution, CGSizeZero)) {
+        CVImageBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+        if(imageBuffer != NULL)
+        {
+            CGSize imageSize = CVImageBufferGetDisplaySize(imageBuffer);
+            NSLog(@"%@", NSStringFromCGSize(imageSize));
+            self.captureResolution = imageSize;
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                [self calculateImageScanRectBaseOnResolution:self.captureResolution withPreviewRectSize:self.previewLayer.frame.size withViewScanRect:self.scanRectInView withOrientation:[[UIApplication sharedApplication] statusBarOrientation]];
+            });
+            // skip this frame
+            return;
         }
     }
+    
+    @autoreleasepool {
+        // reduce CPU usage by around 30%, reference: https://github.com/TheLevelUp/ZXingObjC/issues/314
+        // Default capture 3 frames per second or customize them. if you want lower CPU usage, can adjust captureFramesPerSec to 1.0f make a better performace.
+        float kMinMargin = 1.0 / _captureFramesPerSec;
+        
+        // Gets the timestamp for each frame.
+        CMTime presentTimeStamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
+        
+        static double curFrameTimeStamp = 0;
+        static double lastFrameTimeStamp = 0;
+        
+        curFrameTimeStamp = (double)presentTimeStamp.value / presentTimeStamp.timescale;
+        
+        if (curFrameTimeStamp - lastFrameTimeStamp > kMinMargin) {
+          lastFrameTimeStamp = curFrameTimeStamp;
+          
+          CVImageBufferRef videoFrame = CMSampleBufferGetImageBuffer(sampleBuffer);
+          CGImageRef videoFrameImage = [ZXCGImageLuminanceSource createImageFromBuffer:videoFrame];
+          [self decodeImage:videoFrameImage];
+        }
+    }
+    
+//    if (![self.textDetector isRealDetector] && ![self.faceDetector isRealDetector] && ![self.barcodeDetector isRealDetector]) {
+//        NSLog(@"failing real check");
+//        return;
+//    }
+//
+//    // Do not submit image for text/face recognition too often:
+//    // 1. we only dispatch events every 500ms anyway
+//    // 2. wait until previous recognition is finished
+//    // 3. let user disable text recognition, e.g. onTextRecognized={someCondition ? null : this.textRecognized}
+//    NSDate *methodFinish = [NSDate date];
+//    NSTimeInterval timePassedSinceSubmittingForText = [methodFinish timeIntervalSinceDate:self.startText];
+//    NSTimeInterval timePassedSinceSubmittingForFace = [methodFinish timeIntervalSinceDate:self.startFace];
+//    NSTimeInterval timePassedSinceSubmittingForBarcode = [methodFinish timeIntervalSinceDate:self.startBarcode];
+//    BOOL canSubmitForTextDetection = timePassedSinceSubmittingForText > 0.5 && _finishedReadingText && self.canReadText && [self.textDetector isRealDetector];
+//    BOOL canSubmitForFaceDetection = timePassedSinceSubmittingForFace > 0.5 && _finishedDetectingFace && self.canDetectFaces && [self.faceDetector isRealDetector];
+//    BOOL canSubmitForBarcodeDetection = timePassedSinceSubmittingForBarcode > 0.5 && _finishedDetectingBarcodes && self.canDetectBarcodes && [self.barcodeDetector isRealDetector];
+//    if (canSubmitForFaceDetection || canSubmitForTextDetection || canSubmitForBarcodeDetection) {
+//        CGSize previewSize = CGSizeMake(_previewLayer.frame.size.width, _previewLayer.frame.size.height);
+//        NSInteger position = self.videoCaptureDeviceInput.device.position;
+//        UIImage *image = [RNCameraUtils convertBufferToUIImage:sampleBuffer previewSize:previewSize position:position];
+//        // take care of the fact that preview dimensions differ from the ones of the image that we submit for text detection
+//        float scaleX = _previewLayer.frame.size.width / image.size.width;
+//        float scaleY = _previewLayer.frame.size.height / image.size.height;
+//
+//        // find text features
+//        if (canSubmitForTextDetection) {
+//            _finishedReadingText = false;
+//            self.startText = [NSDate date];
+//            [self.textDetector findTextBlocksInFrame:image scaleX:scaleX scaleY:scaleY completed:^(NSArray * textBlocks) {
+//                NSDictionary *eventText = @{@"type" : @"TextBlock", @"textBlocks" : textBlocks};
+//                [self onText:eventText];
+//                self.finishedReadingText = true;
+//            }];
+//        }
+//        // find face features
+//        if (canSubmitForFaceDetection) {
+//            _finishedDetectingFace = false;
+//            self.startFace = [NSDate date];
+//            [self.faceDetector findFacesInFrame:image scaleX:scaleX scaleY:scaleY completed:^(NSArray * faces) {
+//                NSDictionary *eventFace = @{@"type" : @"face", @"faces" : faces};
+//                [self onFacesDetected:eventFace];
+//                self.finishedDetectingFace = true;
+//            }];
+//        }
+//        // find barcodes
+//        if (canSubmitForBarcodeDetection) {
+//            _finishedDetectingBarcodes = false;
+//            self.startBarcode = [NSDate date];
+//            [self.barcodeDetector findBarcodesInFrame:image scaleX:scaleX scaleY:scaleY completed:^(NSArray * barcodes) {
+//                NSDictionary *eventBarcode = @{@"type" : @"barcode", @"barcodes" : barcodes};
+//                [self onBarcodesDetected:eventBarcode];
+//                self.finishedDetectingBarcodes = true;
+//            }];
+//        }
+//    }
 }
 
 - (bool)isRecording {
     return self.movieFileOutput != nil ? self.movieFileOutput.isRecording : NO;
+}
+
+- (void) decodeImage:(CGImageRef)image {
+    CGImageRef croppedImage = CGImageCreateWithImageInRect(image, self.scanRect);
+    CGImageRelease(image);
+    image = croppedImage;
+    
+    if (self.scanRectLayer && self.imageDecoder) {
+        CGImageRef rotatedImage = [ZXImageDecoder createRotatedImage:image degrees:self.scanRectRotation];
+        CGImageRetain(rotatedImage);
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            self.scanRectLayer.contents = (__bridge id)rotatedImage;
+            CGImageRelease(rotatedImage);
+        });
+    }
+    
+    if (self.barcodeDetector) {
+        [self.barcodeDetector findBarcodeInFrame:image withRotation:self.scanRectRotation inverted:NO withCompletion:^(ZXResult * _Nonnull result) {
+            /*
+             @{
+             @"size" : @{@"width" : @(width), @"height" : @(height)},
+             @"origin" : @{@"x" : @(originX), @"y" : @(originY)}
+             }
+             */
+            
+            // Not supported bar code bounds for RSS14 Limited yet
+            NSDictionary *eventBarcode = @{@"type" : @"barcode",
+                                           @"barcodes" : @[@{@"data": result.text,
+                                                             @"type": [result barcodeFormatToString:result.barcodeFormat],
+                                                           @"bounds":@{
+                                                           @"size" : @{@"width" : @(300), @"height" : @(60)},
+                                                           @"origin" : @{@"x" : @(200), @"y" : @(200)}
+                                                           }}]};
+            [self onBarcodesDetected:eventBarcode];
+            self.finishedDetectingBarcodes = true;
+        }];
+    }
 }
 
 @end

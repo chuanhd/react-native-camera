@@ -2,9 +2,11 @@
 #import <React/RCTBridge.h>
 #import <React/RCTBridgeModule.h>
 #import <UIKit/UIKit.h>
+#import "ZXImageDecoder.h"
 
 #import "FaceDetectorManagerMlkit.h"
 #import "BarcodeDetectorManagerMlkit.h"
+#import "ZXingBarcodeDetectorManagerKit.h"
 #import "TextDetectorManager.h"
 
 @class RNCamera;
@@ -52,6 +54,9 @@
 @property(assign, nonatomic, nullable) NSNumber *defaultVideoQuality;
 @property(assign, nonatomic, nullable) NSNumber *deviceOrientation;
 @property(assign, nonatomic, nullable) NSNumber *orientation;
+@property(nonatomic, strong, nonnull) CALayer *scanRectLayer;
+@property(assign, nonatomic) CGSize captureResolution;
+@property(assign, nonatomic) CGSize scanRectSize;
 
 - (id)initWithBridge:(RCTBridge *)bridge;
 - (void)updateType;
@@ -71,7 +76,9 @@
 - (void)updateRectOfInterest;
 // google Barcode props
 - (void)updateGoogleVisionBarcodeType:(id)requestedTypes;
-
+// zxing barcode
+- (void) updateZXingBarcodeTypes:(id)types;
+ 
 - (void)takePicture:(NSDictionary *)options
             resolve:(RCTPromiseResolveBlock)resolve
              reject:(RCTPromiseRejectBlock)reject;
@@ -84,6 +91,8 @@
 - (void)recordWithOrientation:(NSDictionary *)options
                       resolve:(RCTPromiseResolveBlock)resolve
                        reject:(RCTPromiseRejectBlock)reject;
+// zxing barcode props
+- (void)updateScanRectSize;
 - (void)stopRecording;
 - (void)resumePreview;
 - (void)pausePreview;

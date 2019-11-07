@@ -251,6 +251,7 @@ export default class CameraScreen extends React.Component {
         whiteBalance={this.state.whiteBalance}
         ratio={this.state.ratio}
         focusDepth={this.state.depth}
+        pictureSize={'1920x1080'}
         trackingEnabled
         androidCameraPermissionOptions={{
           title: 'Permission to use camera',
@@ -271,7 +272,7 @@ export default class CameraScreen extends React.Component {
         onFacesDetected={canDetectFaces ? this.facesDetected : null}
         onTextRecognized={canDetectText ? this.textRecognized : null}
         onGoogleVisionBarcodesDetected={canDetectBarcode ? this.barcodeRecognized : null}
-        googleVisionBarcodeType={RNCamera.Constants.GoogleVisionBarcodeDetection.BarcodeType.ALL}
+        zxingBarCodeTypes={['EAN_8', 'EAN_13', 'RSS14_LIMITED']}
       >
         <View
           style={{
